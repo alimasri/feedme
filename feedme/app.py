@@ -11,13 +11,41 @@ from emailclients.google import GoogleClient
 from emailclients.smtp import SMTPClient
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-u", "--url", dest="url", help="Feed URL", required=True)
-parser.add_argument("-c", "--config", dest="config", help="YAML configuration file", required=True)
-parser.add_argument("-s", "--email-service", dest="client",
-                    help="Name of the email service", required=True, choices=["google", "smtp"])
+parser.add_argument("-u", "--url",
+                    dest="url",
+                    help="Feed URL",
+                    required=True)
+parser.add_argument("-c", "--config",
+                    dest="config",
+                    help="YAML configuration file",
+                    required=True)
+parser.add_argument("-s", "--email-service",
+                    dest="client",
+                    help="Name of the email service",
+                    required=True,
+                    choices=["google", "smtp"])
+parser.add_argument("-i", "--ignore-tracker",
+                    dest="ignore_tracker",
+                    type=bool,
+                    help="A flag to force feed processing even if fees was already processed",
+                    default=False,
+                    required=False)
+parser.add_argument("-l", "--log",
+                    dest="logfile",
+                    help="Log file path",
+                    required=False)
 
-logging.basicConfig(level=logging.DEBUG)
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(level="DEBUG", format=LOG_FORMAT)
 logger = logging.getLogger("FeedMe")
+
+
+def enable_file_logging(log_file_path):
+    global logger
+    f_handler = logging.FileHandler(log_file_path)
+    f_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    f_handler.setLevel(logging.INFO)
+    logger.addHandler(f_handler)
 
 
 def parse_contacts(contacts_file):
@@ -50,7 +78,24 @@ def parse_posts(feed):
     return posts
 
 
-def main(url, templates_folder, template_name, output_folder, contacts_file, sender, client):
+def get_tracker_datetime(template_folder):
+    try:
+        with open(template_folder.joinpath("TRACKER"), "r") as f:
+            date_string = f.readline()
+            return datetime.datetime.fromisoformat(date_string)
+    except:
+        return None
+
+
+def set_tracker_datetime(template_folder, new_datetime):
+    try:
+        with open(template_folder.joinpath("TRACKER"), "w") as f:
+            f.write(new_datetime.isoformat())
+    except:
+        pass
+
+
+def main(url, templates_folder, template_name, output_folder, contacts_file, sender, email_client):
     logger.info(f"Parsing data from {url}")
     try:
         feed = feedparser.parse(url)
@@ -63,6 +108,19 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     nb_entries = len(feed.entries)
     if nb_entries == 0:
         logger.info("No entries found!")
+        return
+
+    output_folder = pathlib.Path(output_folder).joinpath(template_name)
+    if not output_folder.exists():
+        output_folder.mkdir(parents=True, exist_ok=True)
+
+    feed_datetime = datetime.datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
+    tracker_datetime = get_tracker_datetime(output_folder)
+
+    if (feed_datetime is not None) \
+            and (tracker_datetime is not None) \
+            and (tracker_datetime >= feed_datetime):
+        logger.info("Feed already processed")
         return
 
     logger.info(f"Found {nb_entries} posts")
@@ -81,10 +139,6 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     date = datetime.datetime.today().strftime("%Y%m%d")
     html = template.render(date=date, posts=posts)
 
-    output_folder = pathlib.Path(output_folder)
-    output_folder = output_folder.joinpath(template_name)
-    if not output_folder.exists():
-        output_folder.mkdir(parents=True, exist_ok=True)
     html_output_path = output_folder.joinpath(f"{date}.html")
     logger.info(f"Saving generated file to {html_output_path}")
     with open(html_output_path, "w", encoding="utf-8") as f:
@@ -96,13 +150,19 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     logger.info("Sending email...")
     subject = f"{template_name} Posts"
     to = ','.join(contacts)
-    message = client.create_message(sender, to, subject, html)
-    client.send_message(message)
+    message = email_client.create_message(sender, to, subject, html)
+    email_client.send_message(message)
+
+    if feed_datetime is not None:
+        logger.info("Setting tracker info...")
+        set_tracker_datetime(output_folder, feed_datetime)
 
 
 if __name__ == "__main__":
-    logger.info("Program Started")
     args = parser.parse_args(sys.argv[1:])
+    if args.logfile:
+        enable_file_logging(args.logfile)
+    logger.info("Program Started")
     config = yaml.load(open(args.config, "r"), Loader=yaml.FullLoader)
     client = None
     credentials = config["credentials"]
