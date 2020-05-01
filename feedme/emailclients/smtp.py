@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from emailclients.emailclient import EmailClient
+from feedme.emailclients.clientbase import EmailClient
 
 
 class SMTPClient(EmailClient):

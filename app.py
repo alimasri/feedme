@@ -1,14 +1,14 @@
 import argparse
-import datetime
 import logging
 import pathlib
 import sys
 import feedparser
 import yaml
 from jinja2 import FileSystemLoader, Environment
-
-from emailclients.google import GoogleClient
-from emailclients.smtp import SMTPClient
+from feedme.emailclients.google import GoogleClient
+from feedme.emailclients.smtp import SMTPClient
+from feedme.utils import set_tracker_datetime, parse_posts, parse_contacts, get_tracker_datetime
+from datetime import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--url",
@@ -26,9 +26,8 @@ parser.add_argument("-s", "--email-service",
                     choices=["google", "smtp"])
 parser.add_argument("-i", "--ignore-tracker",
                     dest="ignore_tracker",
-                    type=bool,
+                    action='store_true',
                     help="A flag to force feed processing even if fees was already processed",
-                    default=False,
                     required=False)
 parser.add_argument("-l", "--log",
                     dest="logfile",
@@ -48,54 +47,7 @@ def enable_file_logging(log_file_path):
     logger.addHandler(f_handler)
 
 
-def parse_contacts(contacts_file):
-    contacts = []
-    with open(contacts_file, "r") as f:
-        for line in f.readlines():
-            if line == "":
-                continue
-            try:
-                name, email = line.split(",")
-                contacts.append(f"{name.strip()} <{email.strip()}>")
-            except:
-                pass
-    return contacts
-
-
-def parse_posts(feed):
-    posts = []
-    for entry in feed.entries:
-        post_title = entry.title
-        post_author = entry.author
-        post_link = entry.link
-        post_summary = entry.summary
-        posts.append({
-            "title": post_title,
-            "author": post_author,
-            "link": post_link,
-            "summary": post_summary
-        })
-    return posts
-
-
-def get_tracker_datetime(template_folder):
-    try:
-        with open(template_folder.joinpath("TRACKER"), "r") as f:
-            date_string = f.readline()
-            return datetime.datetime.fromisoformat(date_string)
-    except:
-        return None
-
-
-def set_tracker_datetime(template_folder, new_datetime):
-    try:
-        with open(template_folder.joinpath("TRACKER"), "w") as f:
-            f.write(new_datetime.isoformat())
-    except:
-        pass
-
-
-def main(url, templates_folder, template_name, output_folder, contacts_file, sender, email_client):
+def main(url, templates_folder, template_name, output_folder, contacts_file, sender, email_client, ignore_tracker):
     logger.info(f"Parsing data from {url}")
     try:
         feed = feedparser.parse(url)
@@ -114,10 +66,11 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     if not output_folder.exists():
         output_folder.mkdir(parents=True, exist_ok=True)
 
-    feed_datetime = datetime.datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
+    feed_datetime = datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
     tracker_datetime = get_tracker_datetime(output_folder)
 
-    if (feed_datetime is not None) \
+    if (not ignore_tracker) and \
+            (feed_datetime is not None) \
             and (tracker_datetime is not None) \
             and (tracker_datetime >= feed_datetime):
         logger.info("Feed already processed")
@@ -136,7 +89,7 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
         return
 
     logger.info("Rendering...")
-    date = datetime.datetime.today().strftime("%Y%m%d")
+    date = datetime.today().strftime("%Y%m%d")
     html = template.render(date=date, posts=posts)
 
     html_output_path = output_folder.joinpath(f"{date}.html")
@@ -182,5 +135,6 @@ if __name__ == "__main__":
          config["output_folder"],
          config["contacts"],
          config["sender"],
-         client)
+         client,
+         args.ignore_tracker)
     logger.info("Program terminated successfully")
