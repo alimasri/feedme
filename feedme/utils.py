@@ -5,13 +5,14 @@ def parse_contacts(contacts_file):
     contacts = []
     with open(contacts_file, "r") as f:
         for line in f.readlines():
+            line = line.strip()
             if line == "":
                 continue
             try:
                 name, email = line.split(",")
                 contacts.append(f"{name.strip()} <{email.strip()}>")
             except:
-                pass
+                contacts.append(line)
     return contacts
 
 
