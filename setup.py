@@ -9,7 +9,7 @@ with open("requirements.txt", "r") as fh:
         requirements.append(line)
 
 setuptools.setup(
-    name="feedme-alimasri91",
+    name="feedme",
     version="1.0.0",
     author="Ali Masri",
     author_email="alimasridev@gmail.com",
@@ -19,6 +19,9 @@ setuptools.setup(
     url="https://github.com/alimasri/feedme",
     packages=setuptools.find_packages(),
     install_requires=requirements,
+    entry_points={
+        "console_scripts": ["feedme=feedme.__main__:run"]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

@@ -9,44 +9,62 @@ from feedme.emailclients.google import GoogleClient
 from feedme.emailclients.smtp import SMTPClient
 from feedme.utils import set_tracker_datetime, parse_posts, parse_contacts, get_tracker_datetime
 from datetime import datetime
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-u", "--url",
-                    dest="url",
-                    help="Feed URL",
-                    required=True)
-parser.add_argument("-c", "--config",
-                    dest="config",
-                    help="YAML configuration file",
-                    required=True)
-parser.add_argument("-s", "--email-service",
-                    dest="client",
-                    help="Name of the email service (none if quiet mode)",
-                    required=False,
-                    default="none",
-                    choices=["google", "smtp", "none"])
-parser.add_argument("-l", "--log",
-                    dest="logfile",
-                    help="Log file path",
-                    required=False)
-parser.add_argument("-i", "--ignore-tracker",
-                    dest="ignore_tracker",
-                    action='store_true',
-                    help="A flag to force feed processing even if fees was already processed",
-                    required=False)
+from feedme import __version__
 
 
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-logging.basicConfig(level="DEBUG", format=LOG_FORMAT)
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-u", "--url",
+                        dest="url",
+                        help="feed URL",
+                        required=True)
+    parser.add_argument("-c", "--config",
+                        dest="config",
+                        help="YAML configuration file",
+                        required=True)
+    parser.add_argument("-s", "--email-service",
+                        dest="client",
+                        help="email service name (none if quiet mode)",
+                        required=False,
+                        default="none",
+                        choices=["google", "smtp", "none"])
+    parser.add_argument("-l", "--log",
+                        dest="logfile",
+                        help="log file path",
+                        required=False)
+    parser.add_argument("-i", "--ignore-tracker",
+                        dest="ignore_tracker",
+                        action='store_true',
+                        help="force feed processing even if fees was already processed",
+                        required=False)
+    parser.add_argument("--version",
+                        action="version",
+                        version=f"feedme {__version__}")
+    parser.add_argument('-v', '--verbose',
+                        dest="loglevel",
+                        help="set loglevel to INFO",
+                        action='store_const',
+                        const=logging.INFO)
+    parser.add_argument('-vv', '--very-verbose',
+                        dest="loglevel",
+                        help="set loglevel to DEBUG",
+                        action='store_const',
+                        const=logging.DEBUG)
+    return parser.parse_args(args)
+
+
 logger = logging.getLogger("FeedMe")
+LOG_FORMAT = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
 
 
-def enable_file_logging(log_file_path):
-    global logger
-    f_handler = logging.FileHandler(log_file_path)
-    f_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-    f_handler.setLevel(logging.INFO)
-    logger.addHandler(f_handler)
+def setup_logging(loglevel=logging.INFO, log_file_path=None):
+    logging.basicConfig(level=loglevel, stream=sys.stdout,
+                        format=LOG_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
+    if log_file_path:
+        f_handler = logging.FileHandler(log_file_path)
+        f_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        f_handler.setLevel(logging.INFO)
+        logger.addHandler(f_handler)
 
 
 def main(url, templates_folder, template_name, output_folder, contacts_file, sender, email_client, ignore_tracker):
@@ -99,7 +117,7 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     with open(html_output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    if client:
+    if email_client:
         logger.info(f"Parsing contacts from {contacts_file}")
         contacts = parse_contacts(contacts_file)
         if len(contacts) == 0:
@@ -116,10 +134,9 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
         set_tracker_datetime(output_folder, feed_datetime)
 
 
-if __name__ == "__main__":
-    args = parser.parse_args(sys.argv[1:])
-    if args.logfile:
-        enable_file_logging(args.logfile)
+def run():
+    args = parse_args(sys.argv[1:])
+    setup_logging(args.loglevel, args.logfile)
     logger.info("Program Started")
     config = yaml.load(open(args.config, "r"), Loader=yaml.FullLoader)
     client = None
@@ -145,3 +162,7 @@ if __name__ == "__main__":
          client,
          args.ignore_tracker)
     logger.info("Program terminated successfully")
+
+
+if __name__ == "__main__":
+    run()
