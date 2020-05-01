@@ -21,18 +21,20 @@ parser.add_argument("-c", "--config",
                     required=True)
 parser.add_argument("-s", "--email-service",
                     dest="client",
-                    help="Name of the email service",
-                    required=True,
-                    choices=["google", "smtp"])
+                    help="Name of the email service (none if quiet mode)",
+                    required=False,
+                    default="none",
+                    choices=["google", "smtp", "none"])
+parser.add_argument("-l", "--log",
+                    dest="logfile",
+                    help="Log file path",
+                    required=False)
 parser.add_argument("-i", "--ignore-tracker",
                     dest="ignore_tracker",
                     action='store_true',
                     help="A flag to force feed processing even if fees was already processed",
                     required=False)
-parser.add_argument("-l", "--log",
-                    dest="logfile",
-                    help="Log file path",
-                    required=False)
+
 
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level="DEBUG", format=LOG_FORMAT)
@@ -97,14 +99,17 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     with open(html_output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    logger.info(f"Parsing contacts from {contacts_file}")
-    contacts = parse_contacts(contacts_file)
-
-    logger.info("Sending email...")
-    subject = f"{template_name} Posts"
-    to = ','.join(contacts)
-    message = email_client.create_message(sender, to, subject, html)
-    email_client.send_message(message)
+    if client:
+        logger.info(f"Parsing contacts from {contacts_file}")
+        contacts = parse_contacts(contacts_file)
+        if len(contacts) == 0:
+            logger.info("No contacts found!")
+        else:
+            logger.info("Sending email...")
+            subject = f"{template_name} Posts"
+            to = ','.join(contacts)
+            message = email_client.create_message(sender, to, subject, html)
+            email_client.send_message(message)
 
     if feed_datetime is not None:
         logger.info("Setting tracker info...")
@@ -126,6 +131,8 @@ if __name__ == "__main__":
                             credentials["port"],
                             credentials["login"],
                             credentials["password"])
+    elif args.client == "none":
+        client = None
     else:
         logger.error("Email client not supported")
         exit(1)
