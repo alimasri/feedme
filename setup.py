@@ -3,6 +3,11 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+requirements = []
+with open("requirements.txt", "r") as fh:
+    for line in fh.readlines():
+        requirements.append(line)
+
 setuptools.setup(
     name="feedme-alimasri91",
     version="1.0.0",
@@ -13,6 +18,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/alimasri/feedme",
     packages=setuptools.find_packages(),
+    install_requires=requirements,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
