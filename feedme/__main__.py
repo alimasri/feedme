@@ -10,6 +10,7 @@ from feedme.emailclients.smtp import SMTPClient
 from feedme.utils import set_tracker_datetime, parse_posts, parse_contacts, get_tracker_datetime
 from datetime import datetime
 from feedme import __version__
+import webbrowser
 
 
 def parse_args(args):
@@ -116,6 +117,10 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     logger.info(f"Saving generated file to {html_output_path}")
     with open(html_output_path, "w", encoding="utf-8") as f:
         f.write(html)
+    try:
+        webbrowser.open(html_output_path, new=2)
+    except:
+        pass
 
     if email_client:
         logger.info(f"Parsing contacts from {contacts_file}")
