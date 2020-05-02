@@ -71,4 +71,5 @@ To design an email template:
 
 FeedMe passes two variables to your file
 1. date: current datetime
+1. feed: feed information such as title, subtitle, updated, etc.
 1. posts: the feed entries

@@ -113,10 +113,10 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
         return
 
     logger.info("Rendering...")
-    date = datetime.today().strftime("%Y%m%d")
-    html = template.render(date=date, posts=feed.entries)
+    date = datetime.today()
+    html = template.render(date=date, posts=feed.entries, feed=feed.feed)
 
-    html_output_path = output_folder.joinpath(f"{date}.html")
+    html_output_path = output_folder.joinpath(f"{date.strftime('%Y%m%d%H%M%S')}.html")
     logger.info(f"Saving generated file to {html_output_path}")
     with open(html_output_path, "w", encoding="utf-8") as f:
         f.write(html)
