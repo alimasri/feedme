@@ -87,8 +87,12 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     if not output_folder.exists():
         output_folder.mkdir(parents=True, exist_ok=True)
 
-    feed_datetime = datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
-    tracker_datetime = get_tracker_datetime(output_folder)
+    try:
+        feed_datetime = datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
+        tracker_datetime = get_tracker_datetime(output_folder)
+    except:
+        feed_datetime = None
+        tracker_datetime = None
 
     if (not ignore_tracker) and \
             (feed_datetime is not None) \

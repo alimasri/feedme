@@ -74,5 +74,5 @@ FeedMe passes two variables to your file
 1. post: posts data each containing the following properties
     1. title: post title
     1. author: post author
-    1. link: link to the original post
+    1. link: link to the original post*__*
     1. summary: post summary
