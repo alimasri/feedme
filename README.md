@@ -70,9 +70,5 @@ To design an email template:
 1. use Jinja to load dynamic content from the feed
 
 FeedMe passes two variables to your file
-1. date: feed date
-1. post: posts data each containing the following properties
-    1. title: post title
-    1. author: post author
-    1. link: link to the original post*__*
-    1. summary: post summary
+1. date: current datetime
+1. posts: the feed entries

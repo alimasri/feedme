@@ -16,22 +16,6 @@ def parse_contacts(contacts_file):
     return contacts
 
 
-def parse_posts(feed):
-    posts = []
-    for entry in feed.entries:
-        post_title = entry.title
-        post_author = entry.author
-        post_link = entry.link
-        post_summary = entry.summary
-        posts.append({
-            "title": post_title,
-            "author": post_author,
-            "link": post_link,
-            "summary": post_summary
-        })
-    return posts
-
-
 def get_tracker_datetime(template_folder):
     try:
         with open(template_folder.joinpath("TRACKER"), "r") as f:

@@ -7,7 +7,7 @@ import yaml
 from jinja2 import FileSystemLoader, Environment
 from feedme.emailclients.google import GoogleClient
 from feedme.emailclients.smtp import SMTPClient
-from feedme.utils import set_tracker_datetime, parse_posts, parse_contacts, get_tracker_datetime
+from feedme.utils import set_tracker_datetime, parse_contacts, get_tracker_datetime
 from datetime import datetime
 from feedme import __version__
 import webbrowser
@@ -88,7 +88,7 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
         output_folder.mkdir(parents=True, exist_ok=True)
 
     try:
-        feed_datetime = datetime.strptime(feed.feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
+        feed_datetime = datetime.strptime(feed["updated"], "%a, %d %b %Y %H:%M:%S %z")
         tracker_datetime = get_tracker_datetime(output_folder)
     except:
         feed_datetime = None
@@ -102,7 +102,6 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
         return
 
     logger.info(f"Found {nb_entries} posts")
-    posts = parse_posts(feed)
 
     logger.info(f"Loading template {template_name}...")
     file_loader = FileSystemLoader(templates_folder)
@@ -115,7 +114,7 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
 
     logger.info("Rendering...")
     date = datetime.today().strftime("%Y%m%d")
-    html = template.render(date=date, posts=posts)
+    html = template.render(date=date, posts=feed.entries)
 
     html_output_path = output_folder.joinpath(f"{date}.html")
     logger.info(f"Saving generated file to {html_output_path}")
