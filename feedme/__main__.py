@@ -36,7 +36,7 @@ def parse_args(args):
     parser.add_argument("-i", "--ignore-tracker",
                         dest="ignore_tracker",
                         action='store_true',
-                        help="force feed processing even if fees was already processed",
+                        help="force feed processing even if feed was already processed",
                         required=False)
     parser.add_argument("--version",
                         action="version",
