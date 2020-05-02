@@ -73,3 +73,21 @@ FeedMe passes two variables to your file
 1. date: current datetime
 1. feed: feed information such as title, subtitle, updated, etc.
 1. posts: the feed entries
+
+An Example of a template file
+
+```html
+<h1>{{ feed.title }}</h1>
+<h2>{{ feed.subtitle }}</h2>
+<h3>Updated At: {{ feed.updated}}</h3>
+<h2>Current Time: {{ date }}</h2>
+<div>
+{% for post in posts %}
+	<div>
+		<h4><a href="{{post.link}}">{{ post.title }}</a></h1>
+		<h5>{{ post.author }}</h5>
+		{{ post.summary }} <a href="{{post.link}}">Read more</a>
+	</div>
+{% endfor %}
+</div>
+```
