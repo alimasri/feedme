@@ -64,11 +64,36 @@ def setup_logging(loglevel=logging.INFO, log_file_path=None):
     if log_file_path:
         f_handler = logging.FileHandler(log_file_path)
         f_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-        f_handler.setLevel(logging.INFO)
+        f_handler.setLevel(logging.DEBUG)
         logger.addHandler(f_handler)
 
 
-def main(url, templates_folder, template_name, output_folder, contacts_file, sender, email_client, ignore_tracker):
+def main(args):
+    args = parse_args(args)
+    setup_logging(args.loglevel, args.logfile)
+    logger.info("Program Started")
+    config = yaml.load(open(args.config, "r"), Loader=yaml.FullLoader)
+    email_client = None
+    credentials = config["credentials"]
+    if args.client == "google":
+        email_client = GoogleClient(credentials["file"])
+    elif args.client == "smtp":
+        email_client = SMTPClient(credentials["host"],
+                            credentials["port"],
+                            credentials["login"],
+                            credentials["password"])
+    elif args.client == "none":
+        email_client = None
+    else:
+        logger.error("Email client not supported")
+        exit(1)
+    url = args.url
+    templates_folder = config["templates_folder"]
+    template_name = config["template_name"]
+    output_folder = config["output_folder"]
+    contacts_file = config["contacts"]
+    sender = config["sender"]
+    ignore_tracker = args.ignore_tracker
     logger.info(f"Parsing data from {url}")
     try:
         feed = feedparser.parse(url)
@@ -140,36 +165,11 @@ def main(url, templates_folder, template_name, output_folder, contacts_file, sen
     if feed_datetime is not None:
         logger.info("Setting tracker info...")
         set_tracker_datetime(output_folder, feed_datetime)
+    logger.info("Program terminated successfully")
 
 
 def run():
-    args = parse_args(sys.argv[1:])
-    setup_logging(args.loglevel, args.logfile)
-    logger.info("Program Started")
-    config = yaml.load(open(args.config, "r"), Loader=yaml.FullLoader)
-    client = None
-    credentials = config["credentials"]
-    if args.client == "google":
-        client = GoogleClient(credentials["file"])
-    elif args.client == "smtp":
-        client = SMTPClient(credentials["host"],
-                            credentials["port"],
-                            credentials["login"],
-                            credentials["password"])
-    elif args.client == "none":
-        client = None
-    else:
-        logger.error("Email client not supported")
-        exit(1)
-    main(args.url,
-         config["templates_folder"],
-         config["template_name"],
-         config["output_folder"],
-         config["contacts"],
-         config["sender"],
-         client,
-         args.ignore_tracker)
-    logger.info("Program terminated successfully")
+    main(sys.argv[1:])
 
 
 if __name__ == "__main__":
